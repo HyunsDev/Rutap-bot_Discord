@@ -18,16 +18,21 @@ https://invite.gg/rutapbot - Team. 화공 지원서버
 
 kangs7721@naver.com - 담당자 화향 이메일
 
-# 초대방법
+# Hou to Invite
 
-https://rutapofficial.xyz OR https://invite.gg/rutapbot
+(지원서버 #초대 채널에 기재되어 있음)
 
 루탑봇을 서버에 들이거나, 루탑봇 지원서버에 들어오거나 루탑봇과 1:1 대화를 하는 등 루탑봇과 관련된 모든 행위를 할 시, 개인정보 취급방침과 이용약관(초대링크에 기재)에 동의하는 것으로 간주됩니다.
 
-# 저작권 고지
+# Self-Hosting
+
+2019 버전을 준비 중에 있습니다! 2019년까지 조금만 더 기다려 주세요!
+
+# Copyright
+
 루탑봇 소스에 대한 저작권은 Team. 화공이 소유합니다. 모든 권리를 보유합니다.
 
-# 라이선스 고지
+# License
 
 GNU General Public License v3.0
 
