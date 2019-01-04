@@ -26,7 +26,10 @@ kangs7721@naver.com - 담당자 화향 이메일
 
 # Self-Hosting
 
-2019 버전을 준비 중에 있습니다! 2019년까지 조금만 더 기다려 주세요!
+**__반드시 rutap.py를 열어 "정보" 명령어 란에다가 본 레포지토리 링크 기재 해 주세요!!__**
+Setting.py 를 열어 내용들을 수정하고 run.bat을 관리자로 열고 1번을 입력하여 업데이트 및 모듈설치를 마친 다음, run.bat(을)를 일반 권한으로 열어 2번을 입력하면 가동됩니다.
+
+rpc.rts 파일을 열어 봇이 플레이중인 게임을 수정 할 수도 있습니다.
 
 # Copyright
 
@@ -34,6 +37,6 @@ kangs7721@naver.com - 담당자 화향 이메일
 
 # License
 
-GNU General Public License v3.0
+BSD 3-Clause License
 
-사용시 꼭 본 레포지토리 링크를 기재해야 합니다.
+사용시 꼭 본 레포지토리 링크와 원작자를 기재해야 합니다.
