@@ -1,38 +1,17 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+name: 버그 신고
+about: 저희가 잡아내지 못한 버그를 제보 해 주세요!
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**설명**
+간단하게 버그를 설명해주세요.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**재현방법**
+버그를 찾아내기 위해 재현 방법을 적어주세요. 번호를 붙여주시면 더욱 좋습니다.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**스크린샷**
+스크린샷이 있다면 같이 첨부해주세요.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+**기타**
+이 버그에 대해 더 하실 말씀을 적어주세요.
