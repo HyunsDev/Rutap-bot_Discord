@@ -1,6 +1,9 @@
 ---
 name: 버그 신고
 about: 저희가 잡아내지 못한 버그를 제보 해 주세요!
+title: ''
+labels: bug
+assignees: ''
 
 ---
 
