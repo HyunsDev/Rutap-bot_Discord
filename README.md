@@ -18,7 +18,7 @@ https://invite.gg/rutapbot - Team. 화공 지원서버
 
 hwahyang1223@gmail.com - 담당자 화향 이메일
 
-# Hou to Invite
+# How to Invite
 
 https://rutapofficial.xyz/invite
 
