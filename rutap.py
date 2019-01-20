@@ -1,21 +1,26 @@
-# -*- coding: utf-8 -*- 
+# -*- coding:utf-8 -*- 
 
 ##########################################################
 #                Rutap Bot 2019 Main Module              #
 # 모든 저작권은 팀 화공이 소유합니다. 모든 권리를 보유합니다. #
-#             GNU General Public License v3.0            #
+#                   BSD 3-Clause License                 #
 ##########################################################
 
-import asyncio, discord, os, requests, random, datetime, re, json, sys, time, setting
+import asyncio, discord, os, requests, random, datetime, re, json, sys, parser, time, setting
+from warn import warn_give, warn_reset, warn_cancel, warn_check_nomention, warn_check_yesmention
+from server_setting import prefix_change, cc_delete, welcome_message, bye_message
+from admin import change_presence, user_ban, user_unban, notice_set
 from activity_log import log_actvity, log_start_actvity
+from search import nomal_neko, nsfw_neko, img_search
 from msg_log import log_msg, log_start_msg
+from hangul_clock import hangul_clock
 from preta import timeform
-from bs4 import BeautifulSoup as bs4
+from upload import upload
+from normal import ping
 
+app = discord.Client()
 Setting = setting.Settings()
 Copyright = Setting.copy
-app = discord.Client()
-now = datetime.datetime.now()
 a = 0
 
 @app.event
@@ -27,14 +32,15 @@ async def on_ready():
     except FileNotFoundError as e:
         print("rpc.rts 파일을 발견하지 못하였습니다.\n봇이 아무것도 플레이하지 않게 됩니다.\n\n애러 내용 : \"%s\"\n\n==============\n" % (e))
 
-    print("Bot is Ready!\n\n==============\n\n= Rutap Bot 2019 Main Module =\n\n[로그인 정보]\n봇 이름 : %s\n봇 ID : %s\n\n[설정 정보]\n기본 접두사 : %s\n봇 관리자 ID : %s\n로그 파일 저장위치 : log/%s\n봇 활동로그 저장위치 : log/%s\n봇 온라인 알림 메시지 전송 채널 : %s(%s)\n봇 버전 : %s\n\n%s. All Rights Reserved.\nGNU General Public License v3.0\n\n==============\n" % (app.user.name, app.user.id, Setting.prefix, Setting.owner_id, Setting.log_file, Setting.actvity_log_file, Setting.online_notice_channel, app.get_channel(Setting.online_notice_channel), Setting.version, Copyright))
-    
+    print("Bot is Ready!\n\n==============\n\n= Rutap Bot 2019 Main Module =\n\n[로그인 정보]\n봇 이름 : %s\n봇 ID : %s\n\n[설정 정보]\n기본 접두사 : %s\n봇 관리자 ID : %s\n로그 파일 저장위치 : log/%s\n봇 활동로그 저장위치 : log/%s\n봇 온라인 알림 메시지 전송 채널 : %s(%s)\n봇 버전 : %s\n\n© 2018-%s Team. 화공. All Rights Reserved.\nBSD 3-Clause License\n\n==============\n" % (app.user.name, app.user.id, Setting.prefix, Setting.owner_id, Setting.log_file, Setting.actvity_log_file, Setting.online_notice_channel, app.get_channel(Setting.online_notice_channel), Setting.version, datetime.datetime.now().year))
+
     log_start_msg()
     log_start_actvity()
 
+    now = datetime.datetime.now()
     count = 1
 
-    embed=discord.Embed(title="I'm online!", color=0xb2ebf4)
+    embed=discord.Embed(title="I'm online!", color=Setting.embed_color)
     embed.add_field(name="Last Checked in", value="`%s/%s/%s` | `%s:%s:%s` | `%s차`" % (now.year, now.month, now.day, now.hour, now.minute, now.second, count), inline=True)
     embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
     online_notice = await app.send_message(app.get_channel(Setting.online_notice_channel), embed=embed)
@@ -43,7 +49,7 @@ async def on_ready():
         await asyncio.sleep(300)
         count = count + 1
         snow = datetime.datetime.now()
-        embed=discord.Embed(title="I'm online!", color=0xb2ebf4)
+        embed=discord.Embed(title="I'm online!", color=Setting.embed_color)
         embed.add_field(name="Last Checked in", value="`%s/%s/%s` | `%s:%s:%s` | `%s차`" % (snow.year, snow.month, snow.day, snow.hour, snow.minute, snow.second, count), inline=True)
         embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
         await app.edit_message(online_notice, embed=embed)
@@ -72,8 +78,11 @@ async def on_member_remove(member):
 async def on_message(message):
     try:
         try:
-            log_msg(message.server, message.server.id, message.channel, message.channel.id, message.author.name, "#"+message.author.discriminator, message.author.id, message.content)
 
+            try:
+                log_msg(message.server, message.server.id, message.channel, message.channel.id, message.author.name, "#"+message.author.discriminator, message.author.id, message.content)
+            except:
+                pass
 
             if message.author.bot or os.path.isfile("%s_Banned.rts" % (message.author.id)) or message.author.id == app.user.id:
                 return None
@@ -82,6 +91,7 @@ async def on_message(message):
                 prefix = open("Server_%s/%s_Server_prefix.rts" % (message.server.id, message.server.id), 'r').read()
 
                 if os.path.isfile("afk/afk_because%s.rtl" % (message.author.id)):
+                    now = datetime.datetime.now()
 
                     past_year = open("afk/afk_year%s.rtl" % (message.author.id), 'r').read()
                     past_month = open("afk/afk_month%s.rtl" % (message.author.id), 'r').read()
@@ -97,7 +107,7 @@ async def on_message(message):
                     os.remove("afk/afk_min%s.rtl" % (message.author.id))
                     os.remove("afk/afk_because%s.rtl" % (message.author.id))
 
-                    embed = discord.Embed(title="잠수종료!", description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="잠수종료!", description=None, color=Setting.embed_color)
                     embed.add_field(name="대상 유저", value="<@%s>" % (message.author.id), inline=False)
                     embed.add_field(name="사유", value=imafk, inline=False)
                     embed.add_field(name="잠수 시작 시간", value="%s/%s/%s | %s:%s" % (str(past_year), str(past_month), str(past_day), str(past_hour), str(past_min)), inline=True)
@@ -117,46 +127,52 @@ async def on_message(message):
 
                 if message.content.startswith('rutap admin game'):
                     if message.author.id == Setting.owner_id:
-                        playing = message.content[17:]
-                        if playing == "":
+                        result = change_presence(message)
+                        if result == False:
                             await app.send_message(message.channel, "<@%s>, 게임명은 비워둘 수 없습니다. 다시 시도 해 주세요." % (message.author.id))
                         else:
-                            await app.send_message(message.channel, "<@%s>, 봇이 `%s`을(를) 플레이 하게 됩니다." % (message.author.id, playing))
-                            await app.change_presence(game=discord.Game(name=playing, type=0))
-                            log_actvity("Change rpc to %s (Request by. %s)." % (playing, message.author.id))
-                            f = open("rpc.rts", 'w')
-                            f.write(playing)
-                            f.close()
+                            await app.send_message(message.channel, "<@%s>, 봇이 `%s`을(를) 플레이 하게 됩니다." % (message.author.id, message.content[17:]))
+                            await app.change_presence(game=discord.Game(name=result, type=0))
                     else:
                         await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
 
                 if message.content.startswith('rutap admin ban'):
                     if message.author.id == Setting.owner_id:
-                        q = message.content[16:]
-                        if q == message.author.id:
-                            open("%s_Banned.rts" % (q), 'w').close()
-                            await app.send_message(message.channel, "<@%s>, 앞으로 `%s`님의 모든 메시지를 무시합니다." % (message.author.id, q))
-                            log_actvity("I'll Ban %s. (Request by. %s)." % (q, message.author.id))
-                        else:
+                        result = user_ban(message)
+                        if result == False:
                             await app.send_message(message.channel, "<@%s>, 자기 자신을 밴 시킬 수 없습니다!" % (message.author.id))
+                        else:
+                            await app.send_message(message.channel, "<@%s>, 앞으로 `%s`님의 모든 메시지를 무시합니다." % (message.author.id, result))
                     else:
                         await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
 
                 if message.content.startswith('rutap admin unban'):
                     if message.author.id == Setting.owner_id:
-                        q = message.content[16:]
-                        if os.path.isfile("%s_Banned.rts" % (q)):
-                            os.remove("%s_Banned.rts" % (q), 'w')
-                            await app.send_message(message.channel, "<@%s>, 앞으로 `%s`님의 모든 메시지를 무시하지 않습니다." % (message.author.id, q))
-                            log_actvity("I'll UnBan %s. (Request by. %s)." % (q, message.author.id))
-                        else:
+                        result = user_unban(message)
+                        if result == False:
                             await app.send_message(message.channel, "<@%s>, 해당 유저는 밴 되지 않았습니다!" % (message.author.id))
+                        else:
+                            await app.send_message(message.channel, "<@%s>, 앞으로 `%s`님의 모든 메시지를 무시하지 않습니다." % (message.author.id, result))
+                    else:
+                        await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
+
+                if message.content == "rutap admin nsfw add":
+                    if message.author.id == Setting.owner_id:
+                        f = open("nsfw_allow_list.rts", 'r')
+                        channel_list = f.read()
+                        f.close()
+                        if message.channel.id in channel_list:
+                            await app.send_message(message.channel, "<@%s>, 해당 채널은 이미 허용되어 있습니다!" % (message.author.id))
+                        else:
+                            now_channel_list = "%s\n%s" % (channel_list, message.channel.id)
+                            open("nsfw_allow_list.rts", 'w').write(now_channel_list)
+                            await app.send_message(message.channel, "<@%s>, 해당 채널을 `야한냥이` 허용 리스트에 성공적으로 등록되었습니다!" % (message.author.id))
                     else:
                         await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
 
                 if message.content.startswith('rutap admin debug'):
                     if message.content == "rutap admin debug help":
-                        embed = discord.Embed(title="Command of debug Category!", description="`rutap admin debug prefix`\n`rutap admin debug file -r(-d) [filename]`\n`rutap admin debug ping`", color=0xb2ebf4)
+                        embed = discord.Embed(title="Command of debug Category!", description="`rutap admin debug prefix`\n`rutap admin debug file -r(-d) [filename]`\n`rutap admin debug ping`", color=Setting.embed_color)
                         embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                         await app.send_message(message.channel, embed=embed)
                     elif message.content == "rutap admin debug prefix":
@@ -193,13 +209,18 @@ async def on_message(message):
                             await app.send_message(message.channel, "<@%s>,\nmsgarrived : `%s`\nmsgtime : `%s`\nmsgdelay : `%s`\nping : `%sms`" % (message.author.id, msgarrived, msgtime, msgdelay, pong))
                         else:
                             await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
+                    elif message.content == "rutap admin debug clock":
+                        if message.author.id == Setting.owner_id:
+                            hangul_clock()
+                        else:
+                            await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
                     else:
                         return None
 
                 if "rutap admin notice -s all" in message.content:
                     if message.author.id == Setting.owner_id:
                         # DPNK 사용 구문 시점
-                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=0xb2ebf4)
+                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=Setting.embed_color)
                         embed.add_field(name="공지 발신을 준비하고 있습니다!", value="요청자 : <@" + message.author.id + ">", inline=True)
                         embed.set_footer(text = "Module by. Mary | Ver. %s | %s" % (Setting.version, Copyright))
                         mssg = await app.send_message(message.channel, embed=embed)
@@ -207,7 +228,7 @@ async def on_message(message):
                         b = []
                         e = []
                         ec = {}
-                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=0xb2ebf4)
+                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=Setting.embed_color)
                         embed.add_field(name="공지 발신중 입니다!", value="요청자 : <@" + message.author.id + ">", inline=True)
                         embed.set_footer(text = "Module by. Mary | Ver. %s | %s" % (Setting.version, Copyright))
                         await app.edit_message(mssg, embed=embed)
@@ -250,7 +271,7 @@ async def on_message(message):
                                 else:
                                     asdf = asdf + str(server.name) + "[채널 생성 및 재발송에 성공하였습니다.]\n"
                         asdf = asdf + "```"
-                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=0xb2ebf4)
+                        embed=discord.Embed(title="루탑봇 전체공지 시스템", color=Setting.embed_color)
                         embed.add_field(name="공지 발신이 완료되었습니다!", value="요청자 : <@" + message.author.id + ">", inline=True)
                         bs = "```\n"
                         es = "```\n"
@@ -283,51 +304,49 @@ async def on_message(message):
 
                 if "rutap admin notice -s set" in message.content:
                     if message.author.id == Setting.owner_id:
-                        f = open("notice_memo.rts", 'w')
-                        f.write(message.content)
-                        f.close()
-                        await app.send_message(message.channel, "<@%s>, 공지 내용을 성공적으로 등록하였습니다!\n`rutap admin notice -s channel [id]`를 입력하여 공지를 보낼 수 있습니다." % (message.author.id))
-                        log_actvity("I set Notice memo. (Content : %s)." % (message.content))
+                        result = notice_set(message)
+                        if result == True:
+                            await app.send_message(message.channel, "<@%s>, 공지 내용을 성공적으로 등록하였습니다!\n`rutap admin notice -s channel [id]`를 입력하여 공지를 보낼 수 있습니다." % (message.author.id))
                     else:
                         await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
 
                 if message.content.startswith('rutap admin notice -s channel'):
                     if message.author.id == Setting.owner_id:
+                        q_channel = app.get_channel(message.content[20:]).name
                         q = open("notice_memo.rts", 'r').read()
-                        q_channel = message.content[30:]
-                        channel_info = app.get_channel(q_channel)
                         try:
-                            await app.send_message(channel_info, q)
-                            await app.send_message(message.channel, "<@%s>, 성공적으로 `%s`에 메시지를 보냈습니다!" % (message.author.id, channel_info))
-                            log_actvity("I send Notice for %s(%s)." % (q_channel, channel_info))
+                            await app.send_message(q_channel, result)
+                            await app.send_message(message.channel, "<@%s>, 성공적으로 `%s`에 메시지를 보냈습니다!" % (message.author.id, q_channel))
+                            log_actvity("I send Notice for %s(%s)." % (q_channel, q_channel))
+                            return q
                         except Exception as e:
-                            await app.send_message(message.channel, "<@%s>, `%s`에 메시지를 보내지 못하였습니다.\n\n```%s```" % (message.author.id, channel_info, e))
-                            log_actvity("I Failed to send Notice for %s(%s). : %s" % (q_channel, channel_info, e))
+                            await app.send_message(message.channel, "<@%s>, `%s`에 메시지를 보내지 못하였습니다.\n\n```%s```" % (message.author.id, q_channel, e))
+                            log_actvity("I Failed to send Notice for %s(%s). : %s" % (q_channel, q_channel, e))
                     else:
                         await app.send_message(message.channel, "<@%s>, 봇 관리자로 등록되어 있지 않습니다. `setting.py` 파일을 확인하여 주세요." % (message.author.id))
 
                 if os.path.isfile("Server_%s/%s_Server_CC_%s.rts" % (message.server.id, message.server.id, message.content[1:])):
                     response = open("Server_%s/%s_Server_CC_%s.rts" % (message.server.id, message.server.id, message.content[1:])).read()
-                    embed = discord.Embed(title=None, description=response, color=0xb2ebf4)
+                    embed = discord.Embed(title=None, description=response, color=Setting.embed_color)
                     embed.set_footer(text = "\'%sCC 제거\'를 통해 제거가 가능합니다! | Ver. %s | %s" % (prefix, Setting.version, Copyright))
                     await app.send_message(message.channel, embed=embed)
 
                 if message.content == prefix + "도움말":
-                    embed = discord.Embed(title="루탑봇 명령어!", description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="루탑봇 명령어!", description=None, color=Setting.embed_color)
                     embed.add_field(name="봇 관련 명령어!", value="`%s도움말` - 봇의 명령어를 출력합니다. `%s도움말 전체` 를 입력하여 모든 명령어를 볼 수 있습니다.\n`%s정보` - 봇의 정보를 출력합니다!" % (prefix, prefix, prefix), inline=False)
                     embed.add_field(name="봇 서버 관련 명령어!", value="`%s핑` - 현재 봇 서버의 응답속도를 확인합니다.\n`%s시간` - 현재 시간을 서버에서 가져옵니다." % (prefix, prefix), inline=False)
                     embed.add_field(name="정보 관련 명령어!", value="`%s서버정보` - 서버의 정보를 불러옵니다.\n|     아직은 노출할 수 있는 정보가 별로 없지만, 추후 지속적인 업데이트를 통하여 노출되는 정보를 추가할 예정입니다." % (prefix), inline=False)
-                    embed.add_field(name="편의 관련 명령어!", value="`%s잠수 [사유]` - 잠수모드에 진입합니다. 타인이 자신을 언급하면 잠수중이라는 알림을 보냅니다.\n`%s이미지 [검색어]` - 구글에서 랜덤으로 사진 한장을 가져옵니다.\n`%s지우기 [숫자]` - 특정한 갯수의 메시지를 지울 수 있습니다!\n`%s냥이` - 랜덤으로 냥이 짤을 불러옵니다." % (prefix, prefix, prefix, prefix), inline=False)
-                    embed.add_field(name="경고 관련 명령어!", value="`%s경고 확인` - 당신이 받은 경고 횟수를 확인합니다. 명령어 뒤에 멘션을 하여 특정 유저의 경고 상태를 볼 수 있습니다.\n`%s경고 부여 [멘션]`  - 경고를 부여합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 제거 [멘션]`  - 경고를 제거합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 초기화 [멘션]`  - 경고를 초기화합니다. 관리자 권한을 보유하고 있어야 가능합니다." % (prefix, prefix, prefix, prefix), inline=False)
+                    embed.add_field(name="편의 관련 명령어!", value="`%s잠수 [사유]` - 잠수모드에 진입합니다. 타인이 자신을 언급하면 잠수중이라는 알림을 보냅니다.\n`%s이미지 <검색어>` - 구글에서 랜덤으로 사진 한장을 가져옵니다.\n`%s지우기 <숫자>` - 특정한 갯수의 메시지를 지울 수 있습니다!\n`%s냥이` - 랜덤으로 냥이 짤을 불러옵니다." % (prefix, prefix, prefix, prefix), inline=False)
+                    embed.add_field(name="경고 관련 명령어!", value="`%s경고 확인 [멘션]` - 당신이 받은 경고 횟수를 확인합니다. 멘션을 하여 특정 유저의 경고 상태를 볼 수 있습니다.\n`%s경고 부여 <멘션>`  - 경고를 부여합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 제거 <멘션>`  - 경고를 제거합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 초기화 <멘션>`  - 경고를 초기화합니다. 관리자 권한을 보유하고 있어야 가능합니다." % (prefix, prefix, prefix, prefix), inline=False)
                     if message.author.id == Setting.owner_id:
-                        embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 [원하는 명령어]` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 [설정할 접두사]` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
-                        embed.add_field(name="봇 관리자 명령어!", value="`rutap admin shutdown`\n`rutap admin game [Name]`\n`rutap admin debug help`\n`rutap admin (un)ban [ID]`\n`rutap admin notice -s all [...]`\n`rutap admin notice -s add [...]`\n`rutap admin notice -s channel [id]`", inline=False)
+                        embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 <원하는 명령어>` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 <설정할 접두사>` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
+                        embed.add_field(name="봇 관리자 명령어!", value="`rutap admin nsfw add`\n`rutap admin shutdown`\n`rutap admin game <Name>`\n`rutap admin debug help`\n`rutap admin <unban|ban> <ID>`\n`rutap admin notice -s all`\n`rutap admin notice -s add <...>`\n`rutap admin notice -s channel <id>`", inline=False)
                         embed.add_field(name="문의", value="공식 지원서버 : https://invite.gg/rutapbot\n디스코드 : HwaHyang - Official#4037\n공식 트위터 : https://twitter.com/rutapofficial", inline=False)
                         embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                         await app.send_message(message.channel, embed=embed)
                         log_actvity("I sent cmd list to %s." % (message.author.id))
                     elif message.author.server_permissions.administrator:
-                        embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 [원하는 명령어]` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 [설정할 접두사]` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
+                        embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 <원하는 명령어>` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 <설정할 접두사>` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
                         embed.add_field(name="문의", value="공식 지원서버 : https://invite.gg/rutapbot\n디스코드 : HwaHyang - Official#4037\n공식 트위터 : https://twitter.com/rutapofficial", inline=False)
                         embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                         await app.send_message(message.channel, embed=embed)
@@ -339,32 +358,32 @@ async def on_message(message):
                         log_actvity("I sent cmd list to %s." % (message.author.id))
 
                 if message.content == prefix + "도움말 전체":
-                    embed = discord.Embed(title="루탑봇 전체 명령어!", description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="루탑봇 전체 명령어!", description=None, color=Setting.embed_color)
                     embed.add_field(name="봇 관련 명령어!", value="`%s도움말` - 봇의 명령어를 출력합니다. `%s도움말 전체` 를 입력하여 모든 명령어를 볼 수 있습니다.\n`%s정보` - 봇의 정보를 출력합니다!" % (prefix, prefix, prefix), inline=False)
                     embed.add_field(name="봇 서버 관련 명령어!", value="`%s핑` - 현재 봇 서버의 응답속도를 확인합니다.\n`%s시간` - 현재 시간을 서버에서 가져옵니다." % (prefix, prefix), inline=False)
                     embed.add_field(name="정보 관련 명령어!", value="`%s서버정보` - 서버의 정보를 불러옵니다.\n|     아직은 노출할 수 있는 정보가 별로 없지만, 추후 지속적인 업데이트를 통하여 노출되는 정보를 추가할 예정입니다." % (prefix), inline=False)
-                    embed.add_field(name="편의 관련 명령어!", value="`%s잠수 [사유]` - 잠수모드에 진입합니다. 타인이 자신을 언급하면 잠수중이라는 알림을 보냅니다.\n`%s이미지 [검색어]` - 구글에서 랜덤으로 사진 한장을 가져옵니다.\n`%s지우기 [숫자]` - 특정한 갯수의 메시지를 지울 수 있습니다!\n`%s냥이` - 랜덤으로 냥이 짤을 불러옵니다." % (prefix, prefix, prefix, prefix), inline=False)
-                    embed.add_field(name="경고 관련 명령어!", value="`%s경고 확인` - 당신이 받은 경고 횟수를 확인합니다. 명령어 뒤에 멘션을 하여 특정 유저의 경고 상태를 볼 수 있습니다.\n`%s경고 부여 [멘션]`  - 경고를 부여합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 제거 [멘션]`  - 경고를 제거합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 초기화 [멘션]`  - 경고를 초기화합니다. 관리자 권한을 보유하고 있어야 가능합니다." % (prefix, prefix, prefix, prefix), inline=False)
-                    embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 [원하는 명령어]` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 [할말 또는 끄기]` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 [설정할 접두사]` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
-                    embed.add_field(name="봇 관리자 명령어!", value="`rutap admin shutdown`\n`rutap admin game [Name]`\n`rutap admin debug help`\n`rutap admin (un)ban [ID]`\n`rutap admin notice -s all [...]`\n`rutap admin notice -s add [...]`\n`rutap admin notice -s channel [id]`", inline=False)
+                    embed.add_field(name="편의 관련 명령어!", value="`%s잠수 [사유]` - 잠수모드에 진입합니다. 타인이 자신을 언급하면 잠수중이라는 알림을 보냅니다.\n`%s이미지 <검색어>` - 구글에서 랜덤으로 사진 한장을 가져옵니다.\n`%s지우기 <숫자>` - 특정한 갯수의 메시지를 지울 수 있습니다!\n`%s냥이` - 랜덤으로 냥이 짤을 불러옵니다." % (prefix, prefix, prefix, prefix), inline=False)
+                    embed.add_field(name="경고 관련 명령어!", value="`%s경고 확인 [멘션]` - 당신이 받은 경고 횟수를 확인합니다. 멘션을 하여 특정 유저의 경고 상태를 볼 수 있습니다.\n`%s경고 부여 <멘션>`  - 경고를 부여합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 제거 <멘션>`  - 경고를 제거합니다. 관리자 권한을 보유하고 있어야 가능합니다.\n`%s경고 초기화 <멘션>`  - 경고를 초기화합니다. 관리자 권한을 보유하고 있어야 가능합니다." % (prefix, prefix, prefix, prefix), inline=False)
+                    embed.add_field(name="서버 관리자 명령어!", value="`%sCC 추가 <원하는 명령어>` - 커스텀 커맨드(이하 CC)를 만들 수 있습니다. 서버당 5개 제한이 있습니다.\n`%s환영말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 입장시 환영말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s나가는말 <할말|끄기>` - 할말을 적으면 해당 채널에 유저 퇴장시 떠나보내는말이 뜨며, 끄기를 적으면 비활성화 됩니다!\n`%s접두사 <설정할 접두사>` - 봇의 접두사를 변경합니다! 한자리만 가능합니다!" % (prefix, prefix, prefix, prefix), inline=False)
+                    embed.add_field(name="봇 관리자 명령어!", value="`rutap admin nsfw add`\n`rutap admin shutdown`\n`rutap admin game <Name>`\n`rutap admin debug help`\n`rutap admin <unban|ban> <ID>`\n`rutap admin notice -s all`\n`rutap admin notice -s add <...>`\n`rutap admin notice -s channel <id>`", inline=False)
                     embed.add_field(name="문의", value="공식 지원서버 : https://invite.gg/rutapbot\n디스코드 : HwaHyang - Official#4037\n공식 트위터 : https://twitter.com/rutapofficial", inline=False)
                     embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                     await app.send_message(message.channel, embed=embed) 
                     log_actvity("I sent all cmd list to %s." % (message.author.id))
 
                 if message.content == prefix + "정보":
-                    embed = discord.Embed(title="루탑봇 정보!", description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="루탑봇 정보!", description=None, color=Setting.embed_color)
                     embed.add_field(name="[루탑봇 소개]", value="https://rutapofficial.xyz/redirect/about/rutap", inline=False)
                     embed.add_field(name="[루탑봇 개발자]", value="화향", inline=False)
-                    embed.add_field(name="[Special Thanks To]", value="The_Adminator", inline=False)
-                    embed.add_field(name="[오픈소스 라이선스]", value="This bot use nekos.life API. : https://discord.services/api/\n\nhttps://github.com/kijk2869/Discord-Python-Notice-Korean\n(GNU General Public License v3.0)", inline=False)
+                    embed.add_field(name="[Special Thanks To]", value="The_Adminator, Preta", inline=False)
+                    embed.add_field(name="[오픈소스 라이선스]", value="This bot use nekos.life API. : https://discord.services/api/\n\nhttps://github.com/kijk2869/Discord-Python-Notice-Korean\n(BSD 3-Clause License)", inline=False)
                     embed.add_field(name="[Team. 화공 공식 링크]", value="공식 홈페이지 : https://rutapofficial.xyz/\n공식 트위터 : https://twitter.com/rutapofficial\n공식 디스코드 : https://invite.gg/rutapbot", inline=False)
                     embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                     await app.send_message(message.channel, embed=embed)
                     log_actvity("I sent Bot info to %s." % (message.author.id))
 
                 if prefix + "서버정보" == message.content:
-                    embed = discord.Embed(title="\"%s\" 서버정보!" % (message.server.name), description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="\"%s\" 서버정보!" % (message.server.name), description=None, color=Setting.embed_color)
                     embed.add_field(name="서버 소유자", value="<@%s>" % message.server.owner.id, inline=False)
                     embed.add_field(name="서버 생성일", value="%s (UTC)" % (message.server.created_at), inline=False)
                     embed.add_field(name="서버 보안등급", value=message.server.verification_level, inline=False)
@@ -377,46 +396,21 @@ async def on_message(message):
                     log_actvity("I sent Server info to %s." % (message.author.id))
 
                 if message.content.startswith(prefix + '경고 확인'):
-                    mention_id = message.author.id
                     if message.content[7:].startswith('<') and message.content.endswith('>'):
                         mention_id = re.findall(r'\d+', message.content)
                         mention_id = mention_id[0]
                         mention_id = str(mention_id)
-                        if os.path.isfile("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id)):
-                            f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'r')
-                            warn_num = f.read()
-                            f.close()
-                            embed = discord.Embed(title="경고 스탯!", description=None, color=0xb2ebf4)
-                            embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                            embed.add_field(name="총 경고", value="%s회" % (warn_num), inline=True)
-                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                            await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has confirmed %s's warning. (warn_num : %s)" % (message.author.id, mention_id, warn_num))
-                        else:
-                            embed = discord.Embed(title="경고 스탯!", description=None, color=0xb2ebf4)
-                            embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                            embed.add_field(name="총 경고", value="0회", inline=True)
-                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                            await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has confirmed %s's warning. (warn_num : 0)" % (message.author.id, mention_id))
+                        embed = discord.Embed(title="경고 스탯!", description=None, color=Setting.embed_color)
+                        embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
+                        embed.add_field(name="총 경고", value="%s회" % (warn_check_yesmention(message, mention_id)), inline=True)
+                        embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                        await app.send_message(message.channel, embed=embed)
                     else:
-                        if os.path.isfile("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id)):
-                            f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'r')
-                            warn_num = f.read()
-                            f.close()
-                            embed = discord.Embed(title="경고 스탯!", description=None, color=0xb2ebf4)
-                            embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                            embed.add_field(name="총 경고", value="%s회" % (warn_num), inline=True)
-                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                            await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has confirmed his warning. (warn_num : %s)" % (message.author.id, warn_num))
-                        else:
-                            embed = discord.Embed(title="경고 스탯!", description=None, color=0xb2ebf4)
-                            embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                            embed.add_field(name="총 경고", value="0회", inline=True)
-                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                            await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has confirmed his warning. (warn_num : 0)" % (message.author.id))
+                        embed = discord.Embed(title="경고 스탯!", description=None, color=Setting.embed_color)
+                        embed.add_field(name="대상 유저", value="<@%s>" % (message.author.id), inline=True)
+                        embed.add_field(name="총 경고", value="%s회" % (warn_check_nomention(message, mention_id)), inline=True)
+                        embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                        await app.send_message(message.channel, embed=embed)
 
                 if message.content.startswith(prefix + '경고 부여'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
@@ -424,33 +418,12 @@ async def on_message(message):
                             mention_id = re.findall(r'\d+', message.content)
                             mention_id = mention_id[0]
                             mention_id = str(mention_id)
-                            if os.path.isfile("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id)):
-                                f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'r')
-                                past_warn = f.read()
-                                f.close()
-                                now_warn = int(past_warn) + int(1)
-                                now_warn = str(now_warn)
-                                f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'w')
-                                f.write(now_warn)
-                                f.close()
-                                embed = discord.Embed(title="경고가 발생했습니다!", description=None, color=0xb2ebf4)
-                                embed.add_field(name="관리자", value="<@%s>" % (message.author.id), inline=True)
-                                embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                                embed.add_field(name="총 경고", value="%s회" % (now_warn), inline=True)
-                                embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has gived %s's warn (now : %s)" % (message.author.id, mention_id, now_warn))
-                            else:
-                                f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'w')
-                                f.write(str(1))
-                                f.close()
-                                embed = discord.Embed(title="경고가 발생했습니다!", description=None, color=0xb2ebf4)
-                                embed.add_field(name="관리자", value="<@%s>" % (message.author.id), inline=True)
-                                embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                                embed.add_field(name="총 경고", value="1회", inline=True)
-                                embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has gived %s's warn (now : 1)" % (message.author.id, mention_id))
+                            embed = discord.Embed(title="경고가 발생했습니다!", description=None, color=Setting.embed_color)
+                            embed.add_field(name="관리자", value="<@%s>" % (message.author.id), inline=True)
+                            embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
+                            embed.add_field(name="총 경고", value="%s회" % (warn_give(message, mention_id)), inline=True)
+                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                            await app.send_message(message.channel, embed=embed)
                         else:
                             await app.send_message(message.channel, "<@%s>, 유저를 언급해야 합니다!" % (message.author.id))
                     else:
@@ -462,24 +435,15 @@ async def on_message(message):
                             mention_id = re.findall(r'\d+', message.content)
                             mention_id = mention_id[0]
                             mention_id = str(mention_id)
-                            if os.path.isfile("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id)):
-                                f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'r')
-                                past_warn = f.read()
-                                f.close()
-                                now_warn = int(past_warn) - int(1)
-                                now_warn = str(now_warn)
-                                f = open("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id), 'w')
-                                f.write(now_warn)
-                                f.close()
-                                embed = discord.Embed(title="경고 철회가 발생했습니다!", description=None, color=0xb2ebf4)
+                            result = warn_cancel(message, mention_id)
+                            if result == False:
+                                await app.send_message(message.channel, "<@%s>, 대상 유저는 경고를 보유하고 있지 않습니다!" % (message.author.id))
+                            else:
+                                embed = discord.Embed(title="경고 철회가 발생했습니다!", description=None, color=Setting.embed_color)
                                 embed.add_field(name="관리자", value="<@%s>" % (message.author.id), inline=True)
                                 embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
-                                embed.add_field(name="총 경고", value="%s회" % (now_warn), inline=True)
+                                embed.add_field(name="총 경고", value="%s회" % (result), inline=True)
                                 embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has removed %s's warn (now : %s)" % (message.author.id, mention_id, now_warn))
-                            else:
-                                await app.send_message(message.channel, "<@%s>, 대상 유저는 경고를 보유하고 있지 않습니다!" % (message.author.id))
                         else:
                             await app.send_message(message.channel, "<@%s>, 유저를 언급해야 합니다!" % (message.author.id))
                     else:
@@ -491,16 +455,15 @@ async def on_message(message):
                             mention_id = re.findall(r'\d+', message.content)
                             mention_id = mention_id[0]
                             mention_id = str(mention_id)
-                            if os.path.isfile("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id)):
-                                os.remove("Server_%s/warn_user_%s.txt" % (message.server.id, mention_id))
-                                embed = discord.Embed(title="경고 초기화가 발생했습니다!", description=None, color=0xb2ebf4)
+                            result = warn_cancel(message, mention_id)
+                            if result == False:
+                                await app.send_message(message.channel, "<@%s>, 대상 유저는 경고를 보유하고 있지 않습니다!" % (message.author.id))
+                            else:
+                                embed = discord.Embed(title="경고 초기화가 발생했습니다!", description=None, color=Setting.embed_color)
                                 embed.add_field(name="관리자", value="<@%s>" % (message.author.id), inline=True)
                                 embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=True)
                                 embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                                 await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has reset %s's warn" % (message.author.id, mention_id))
-                            else:
-                                await app.send_message(message.channel, "<@%s>, 대상 유저는 경고를 보유하고 있지 않습니다!" % (message.author.id))
                         else:
                             await app.send_message(message.channel, "<@%s>, 유저를 언급해야 합니다!" % (message.author.id))
                     else:
@@ -508,18 +471,25 @@ async def on_message(message):
 
                 if message.content == prefix + "냥이":
                     waitmsg = await app.send_message(message.channel, "<@%s>,\nnekos.life API부터로의 응답을 기다리고 있습니다. 최장 10초가 소요됩니다." % (message.author.id))
-                    #nekos.life API 사용 구문 시점
-                    r = requests.get("https://nekos.life/api/v2/img/neko")
-                    r = r.text
-                    data = json.loads(r)
-                    file = data["url"]
-                    #nekos.life API 사용 구문 종점
-                    embed=discord.Embed(title=None, description=None, color=0xb2ebf4)
-                    embed.set_image(url=file)
+                    embed=discord.Embed(title=None, description=None, color=Setting.embed_color)
+                    embed.set_image(url=nomal_neko(message))
                     embed.set_footer(text = "Powered By. nekos.life | Ver. %s | %s" % (Setting.version, Copyright))
                     await app.delete_message(waitmsg)
                     await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
-                    log_actvity("I sent %s to %s." % (file, message.author.id))
+
+                if message.content == prefix + "야한냥이":
+                    f = open("nsfw_allow_list.rts", 'r')
+                    channel_list = f.read()
+                    f.close()
+                    if message.channel.id in channel_list:
+                        waitmsg = await app.send_message(message.channel, "<@%s>,\nnekos.life API부터로의 응답을 기다리고 있습니다. 최장 10초가 소요됩니다." % (message.author.id))
+                        embed=discord.Embed(title=None, description=None, color=Setting.embed_color)
+                        embed.set_image(url=nsfw_neko(message))
+                        embed.set_footer(text = "Powered By. nekos.life | Ver. %s | %s" % (Setting.version, Copyright))
+                        await app.delete_message(waitmsg)
+                        await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
+                    else:
+                        await app.send_message(message.channel, "<@%s>,\n해당 채널은 `야한냥이` 기능이 허용된 채널이 아닙니다. 자세한 내용은 관리자에게 문의하세요." % (message.author.id))
 
                 if message.content.startswith(prefix + 'CC 추가') or message.content.startswith(prefix + 'cc 추가'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
@@ -538,7 +508,7 @@ async def on_message(message):
                                     else:
                                         cc_q = message.content[7:]
                                         open("Server_%s/%s_Server_%s_Query.rtl" % (message.server.id, message.server.id, message.author.id), 'w').write(cc_q)
-                                        embed = discord.Embed(title="이제 한단계 남았습니다!", description="`%s%s` 명령어를 추가하시려면 `%sCC 등록 [CC 입력시 봇이 할 말]` 을 30초 내로 적어주세요!\n**__이미지는 링크(주소)로 보내셔야 합니다!__**" % (prefix, cc_q, prefix), color=0xb2ebf4)
+                                        embed = discord.Embed(title="이제 한단계 남았습니다!", description="`%s%s` 명령어를 추가하시려면 `%sCC 등록 [CC 입력시 봇이 할 말]` 을 30초 내로 적어주세요!\n**__이미지는 링크(주소)로 보내셔야 합니다!__**" % (prefix, cc_q, prefix), color=Setting.embed_color)
                                         embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                                         await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
                                         await asyncio.sleep(30)
@@ -559,7 +529,7 @@ async def on_message(message):
                             open("Server_%s/%s_Server_CC_%s.rts" % (message.server.id, message.server.id, cc), 'w').write(q)
                             limit = float(open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'r').read())
                             open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'w').write(str(limit - 1))
-                            embed = discord.Embed(title="완료되었습니다!", description="요청하신 커스텀커맨드 `%s%s`가 등록되었습니다!\n`%s%s`을(를) 입력 해 보세요!\n\n오류를 방지하기 위해, 다음 커스텀 커맨드 신청은 30초 뒤에 해주세요!" % (prefix, cc, prefix, cc), color=0xb2ebf4)
+                            embed = discord.Embed(title="완료되었습니다!", description="요청하신 커스텀커맨드 `%s%s`가 등록되었습니다!\n`%s%s`을(를) 입력 해 보세요!\n\n오류를 방지하기 위해, 다음 커스텀 커맨드 신청은 30초 뒤에 해주세요!" % (prefix, cc, prefix, cc), color=Setting.embed_color)
                             embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                             await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
                         else:
@@ -569,125 +539,98 @@ async def on_message(message):
 
                 if message.content.startswith(prefix + 'CC 제거') or message.content.startswith(prefix + 'cc 제거'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
-                        if os.path.isfile("Server_%s/%s_Server_%s_Query.rtl" % (message.server.id, message.server.id, message.author.id)):
+                        result = cc_delete(message)
+                        if result == False:
                             await app.send_message(message.channel, "<@%s>, 현재 추가 요청하신 커스텀커맨드가 있습니다!\n잠시 후 다시 시도하여 주세요!" % (message.author.id))
+                        elif result == "Invaild":
+                            await app.send_message(message.channel, "<@%s>, 해당 커스텀커맨드(`%s`)가 존재하지 않습니다!" % (message.author.id, message.content[7:]))
                         else:
-                            if message.content[7:] == "":
-                                await app.send_message(message.channel, "<@%s>, 누락된 항목이 있습니다. 다시 한번 확인 해 주세요!" % (message.author.id))
-                            else:
-                                if os.path.isfile("Server_%s/%s_Server_CC_%s.rts" % (message.server.id, message.server.id, message.content[7:])):
-                                    limit = float(open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'r').read())
-                                    open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'w').write(str(limit + 1.0))
-                                    os.remove("Server_%s/%s_Server_CC_%s.rts" % (message.server.id, message.server.id, message.content[7:]))
-                                    embed = discord.Embed(title="완료되었습니다!", description="요청하신 커스텀커맨드 `%s%s`가 삭제되었습니다!" % (prefix, message.content[7:]), color=0xb2ebf4)
-                                    embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                    await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
-                                else:
-                                    await app.send_message(message.channel, "<@%s>, 해당 커스텀커맨드(`%s`)가 존재하지 않습니다!" % (message.author.id, message.content[7:]))
+                            embed = discord.Embed(title="완료되었습니다!", description="요청하신 커스텀커맨드 `%s%s`가 삭제되었습니다!" % (prefix, message.content[7:]), color=Setting.embed_color)
+                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                            await app.send_message(message.channel, "<@%s>," % (message.author.id), embed=embed)
                     else:
                         await app.send_message(message.channel, "<@%s>, 당신은 관리자 권한이 없습니다!" % (message.author.id))
 
                 if message.content.startswith(prefix + '환영말'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
-                        if message.content[5:].startswith('끄기'):
-                            if os.path.isfile("Server_%s/%sServer_welcome_say_channel.rts" % (message.server.id, message.server.id)):
-                                os.remove("Server_%s/%sServer_welcome_say_channel.rts" % (message.server.id, message.server.id))
-                                os.remove("Server_%s/%sServer_welcome_msg.rts" % (message.server.id, message.server.id))
-                                embed = discord.Embed(title="완료!", description="앞으로 유저 입장시 환영말이 뜨지 않습니다!", color=0xb2ebf4)
-                                embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has off the welcome message." % (message.author.id))
-                            else:
-                                await app.send_message(message.channel, "<@%s>, 설정한 환영말이 없습니다!" % (message.author.id))
-                        else: 
-                            welcome_msg = message.content[5:]
-                            open("Server_%s/%sServer_welcome_say_channel.rts" % (message.server.id, message.server.id), 'w').write(message.channel.id)
-                            open("Server_%s/%sServer_welcome_msg.rts" % (message.server.id, message.server.id), 'w').write(welcome_msg)
-                            embed = discord.Embed(title="완료!", description="앞으로 이 채널에 환영말이 전송됩니다!", color=0xb2ebf4)
-                            embed.add_field(name="설정한 환영말", value="`(유저언급), %s`" % (welcome_msg), inline=False)
+                        result = welcome_message(message)
+                        if result == False:
+                            await app.send_message(message.channel, "<@%s>, 설정한 환영말이 없습니다!" % (message.author.id))
+                        elif result == "Delete":
+                            embed = discord.Embed(title="완료!", description="앞으로 유저 입장시 환영말이 뜨지 않습니다!", color=Setting.embed_color)
                             embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                             await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has set the welcome message. (msg : (Mention), %s)" % (message.author.id, welcome_msg))
+                        else:
+                            embed = discord.Embed(title="완료!", description="앞으로 이 채널에 환영말이 전송됩니다!", color=Setting.embed_color)
+                            embed.add_field(name="설정한 나가는말", value="`(유저언급), %s`" % (result), inline=False)
+                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                            app.send_message(message.channel, embed=embed)
                     else:
                         await app.send_message(message.channel, "<@%s>, 당신은 관리자 권한이 없습니다!" % (message.author.id))
-    
+
                 if message.content.startswith(prefix + '나가는말'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
-                        if message.content[6:].startswith('끄기'):
-                            if os.path.isfile("Server_%s/%sServer_bye_say_channel.rts" % (message.server.id, message.server.id)):
-                                os.remove("Server_%s/%sServer_bye_say_channel.rts" % (message.server.id, message.server.id))
-                                os.remove("Server_%s/%sServer_bye_msg.rts" % (message.server.id, message.server.id))
-                                embed = discord.Embed(title="완료!", description="앞으로 유저 퇴장시 나가는말이 뜨지 않습니다!", color=0xb2ebf4)
-                                embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
-                                await app.send_message(message.channel, embed=embed)
-                                log_actvity("%s has off the bye message." % (message.author.id))
-                            else:
-                                await app.send_message(message.channel, "<@%s>, 설정한 나가는말이 없습니다!" % (message.author.id))
-                        else: 
-                            bye_msg = message.content[6:]
-                            open("Server_%s/%sServer_bye_say_channel.rts" % (message.server.id, message.server.id), 'w').write(message.channel.id)
-                            open("Server_%s/%sServer_bye_msg.rts" % (message.server.id, message.server.id), 'w').write(bye_msg)
-                            embed = discord.Embed(title="완료!", description="앞으로 이 채널에 나가는말이 기록됩니다!", color=0xb2ebf4)
-                            embed.add_field(name="설정한 나가는말", value="`(유저언급), %s`" % (bye_msg), inline=False)
+                        result = bye_message(message)
+                        if result == False:
+                            await app.send_message(message.channel, "<@%s>, 설정한 나가는말이 없습니다!" % (message.author.id))
+                        elif result == "Delete":
+                            embed = discord.Embed(title="완료!", description="앞으로 유저 퇴장시 나가는말이 뜨지 않습니다!", color=Setting.embed_color)
                             embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                             await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has set the bye message. (msg : (Mention), %s)" % (message.author.id, bye_msg))
+                        else:
+                            embed = discord.Embed(title="완료!", description="앞으로 이 채널에 나가는말이 기록됩니다!", color=Setting.embed_color)
+                            embed.add_field(name="설정한 나가는말", value="`(유저언급), %s`" % (result), inline=False)
+                            embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
+                            app.send_message(message.channel, embed=embed)
                     else:
                         await app.send_message(message.channel, "<@%s>, 당신은 관리자 권한이 없습니다!" % (message.author.id))
 
                 if message.content.startswith(prefix + '접두사'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
-                        prefix_change = message.content[5:6]
-                        if prefix_change == "`":
+                        result = prefix_change(message, prefix)
+                        if result == True:
                             await app.send_message(message.channel, "<@%s>, 해당 접두사는 오류가 발생 할 수 있어 사용 할 수 없습니다!" % (message.author.id))
                         else:
-                            open("Server_%s/%s_Server_prefix.rts" % (message.server.id, message.server.id), 'w').write(prefix_change)
-                            embed = discord.Embed(title="해당 서버의 접두사가 변경되었습니다!", description="접두사가 `%s`에서 `%s`으로 변경되었습니다!" % (prefix, prefix_change), color=0xb2ebf4)
+                            embed = discord.Embed(title="해당 서버의 접두사가 변경되었습니다!", description="접두사가 `%s`에서 `%s`으로 변경되었습니다!" % (prefix, result), color=Setting.embed_color)
                             embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                             await app.send_message(message.channel, embed=embed)
-                            log_actvity("%s has changed prefix to %s in %s (was : %s)" % (message.author.id, prefix_change, message.server.id, prefix))
                     else:
                         await app.send_message(message.channel, "<@%s>, 당신은 관리자 권한이 없습니다!" % (message.author.id))
 
                 if prefix + "핑" == message.content:
-                    if os.path.isfile('no_ping.txt'):
+                    result = ping(message)
+                    if result == False:
                         await app.send_message(message.channel, "<@" + message.author.id + ">,  서버의 안전을 위하여 상태를 한번에 여러명이 조회 할 수 없습니다!\n잠시 후 다시 시도 해 주세요!")
                     else:
-                        f = open("no_ping.txt", 'w').close()
-
-                        msgarrived = float(str(time.time())[:-3])
-                        msgtime = timeform(message.timestamp)
-                        msgdelay = msgarrived - msgtime - 32400
-                        ping = int(msgdelay * 1000)
-
-                        embed = discord.Embed(title="루탑봇 상태!", description=None, color=0xb2ebf4)
-                        if 0 < ping < 400:
-                            embed.add_field(name="서버 핑", value="`%sms`(:large_blue_circle: 핑이 정상입니다.)" % (str(ping)), inline=False)
+                        embed = discord.Embed(title="루탑봇 상태!", description=None, color=Setting.embed_color)
+                        if 0 < result < 400:
+                            embed.add_field(name="서버 핑", value="`%sms`(:large_blue_circle: 핑이 정상입니다.)" % (str(result)), inline=False)
                             embed.add_field(name="봇 업타임", value="https://status.hwahyang.xyz/", inline=False)
                             embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                             await app.send_message(message.channel, "<@%s>, " % (message.author.id), embed=embed)
-                            os.remove("no_ping.txt")
-                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(ping)))
-                        elif ping > 399:
-                            embed.add_field(name="서버 핑", value="`%sms`(:red_circle: 핑이 비정상입니다.)" % (str(ping)), inline=False)
+                            os.remove("no_ping.rtl")
+                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(result)))
+                        elif result > 399:
+                            embed.add_field(name="서버 핑", value="`%sms`(:red_circle: 핑이 비정상입니다.)" % (str(result)), inline=False)
                             embed.add_field(name="봇 업타임", value="https://status.hwahyang.xyz/", inline=False)
                             embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                             await app.send_message(message.channel, "<@%s>, " % (message.author.id), embed=embed)
-                            os.remove("no_ping.txt")
-                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(ping)))
+                            os.remove("no_ping.rtl")
+                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(result)))
                         else:
-                            embed.add_field(name="서버 핑", value="`%sms`(:question: 결과 도출 도중 문제가 발생했습니다.)" % (str(ping)), inline=False)
+                            embed.add_field(name="서버 핑", value="`%sms`(:question: 결과 도출 도중 문제가 발생했습니다.)" % (str(result)), inline=False)
                             embed.add_field(name="봇 업타임", value="https://status.hwahyang.xyz/", inline=False)
                             embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
                             await app.send_message(message.channel, "<@%s>, " % (message.author.id), embed=embed)
-                            os.remove("no_ping.txt")
-                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(ping)))
+                            os.remove("no_ping.rtl")
+                            log_actvity("I sent ping to %s. (ping : %sms)" % (message.author.id, str(result)))
 
                 if message.content.startswith(prefix + '잠수'):
 
                     if os.path.isfile("afk" + message.author.id + "txt"):
                         return None
                     else:
+                        now = datetime.datetime.now()
 
                         imafk = message.content[4:]
 
@@ -698,7 +641,7 @@ async def on_message(message):
                         open("afk/afk_min%s.rtl" % (message.author.id), 'w').write(str(now.minute))
                         open("afk/afk_because%s.rtl" % (message.author.id), 'w').write(imafk)
 
-                        embed = discord.Embed(title="잠수시작!", description=None, color=0xb2ebf4)
+                        embed = discord.Embed(title="잠수시작!", description=None, color=Setting.embed_color)
                         embed.add_field(name="대상 유저", value="<@%s>" % (message.author.id), inline=False)
                         embed.add_field(name="사유", value=imafk, inline=False)
                         embed.add_field(name="잠수 시작 시간", value="%s/%s/%s | %s:%s" % (str(now.year), str(now.month), str(now.day), str(now.hour), str(now.minute)), inline=True)
@@ -707,6 +650,7 @@ async def on_message(message):
                         log_actvity("%s started AFK." % (message.author.id))
 
                 if "<@" in message.content:
+                    now = datetime.datetime.now()
                     mention_id = re.findall(r'\d+', message.content)
                     mention_id = mention_id[0]
                     mention_id = str(mention_id)
@@ -719,7 +663,7 @@ async def on_message(message):
                         minute = open("afk/afk_min%s.rtl" % (mention_id), 'r').read()
                         imafk = open("afk/afk_because%s.rtl" % (mention_id), 'r').read()
 
-                        embed = discord.Embed(title="잠수 상태!", description=None, color=0xb2ebf4)
+                        embed = discord.Embed(title="잠수 상태!", description=None, color=Setting.embed_color)
                         embed.add_field(name="대상 유저", value="<@%s>" % (mention_id), inline=False)
                         embed.add_field(name="사유", value=imafk, inline=False)
                         embed.add_field(name="잠수 시작 시간", value="%s/%s/%s | %s:%s" % (str(year), str(month), str(day), str(hour), str(minute)), inline=True)
@@ -734,39 +678,61 @@ async def on_message(message):
                     waitmsg = await app.send_message(message.channel, "<@%s>,\nGoogle.co.kr 부터로의 응답을 기다리고 있습니다. 최장 10초가 소요됩니다." % (message.author.id))
 
                     q = message.content[5:]
-                    q = q.encode("raw_unicode_escape")
-                    q = str(q)
-
-                    data = requests.get("https://www.google.co.kr/search?q=" + q + "&source=lnms&tbm=isch&sa=X")
-                    soup = bs4(data.text, "html.parser")
-                    imgs = soup.find_all("img")
-
-                    file = random.choice(imgs[1:])['src']
+                    file = img_search(message, q)
 
                     await app.delete_message(waitmsg)
-                    embed = discord.Embed(title="\"%s\"에 대한 검색 결과" % (message.content[5:]), description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="\"%s\"에 대한 검색 결과" % (message.content[5:]), description=None, color=Setting.embed_color)
                     embed.set_image(url=file)
                     embed.set_footer(text = "Powered By. google.co.kr | Ver. %s | %s" % (Setting.version, Copyright))
                     await app.send_message(message.channel, "<@%s>" % (message.author.id), embed=embed)
-                    log_actvity("I sent %s to %s. (Search query : %s)" % (file, message.author.id, message.content[5:]))
 
-                if message.content.startswith(prefix + '시간'):
+                if message.content == prefix + '시간':
+                    if os.path.isfile('clock_rendering.rtl'):
+                        await app.send_message(message.channel, "<@%s>, 잠시 후 다시 시도하여 주세요!" % (message.author.id))
+                    else:
+                        wait = await app.send_message(message.channel, "<@%s>, 처리중입니다! 약 5초가 소요됩니다!" % (message.author.id))
+                        filename = hangul_clock()
+                        result = upload(filename)
+                        if "File information" in result:
+                            file = "%sclocks/%s" % (Setting.hangul_clock_upload, filename)
+                            os.remove(filename)
+                            embed = discord.Embed(title=None, description="`%s문구요청 <원하는 문구>` 를 입력하여 문구 추가를 요청할 수 있습니다!\n한글시계 홈페이지 : https://hangulclock.today" % (prefix), color=Setting.embed_color)
+                            embed.set_image(url=file)
+                            embed.set_footer(text = "Ver. %s | %s" % (Setting.version, Copyright))
+                            await app.delete_message(wait)
+                            await app.send_message(message.channel, "<@%s>" % (message.author.id), embed=embed)
+                        else:
+                            os.remove(filename)
+                            await app.send_message(app.get_channel("Setting.err_log_channel"), "```Markdown\n# Error Has Occured!!!\n- User %s#%s\n* Info : %s\n> Check the logs for more information.```" % (message.author.name, message.author.discriminator, e))
+                            embed = discord.Embed(title="죄송합니다. 원인을 알 수 없는 애러가 발생했습니다.", description="담당자에게 오류 내용이 전송되었으며, 3일 이내에 디스코드 DM으로 알려드리겠습니다.\nOfficial Support Server : https://invite.gg/rutapbot", color=0xff0000)
+                            await app.send_message(message.channel, embed=embed)
+                            log_actvity("Err has occured in %s : %s" % (message.content, result))
+
+                if message.content == prefix + '숫자시간':
+                    now = datetime.datetime.now()
                     if now.hour > 12:
-                        embed = discord.Embed(title="현재 서버 시간은 %s년 %s월 %s일 오후 %s시 %s분 %s초 입니다!" % (now.year, now.month, now.day, now.hour - 12, now.minute, now.second), description=None, color=0xb2ebf4)
+                        embed = discord.Embed(title="현재 서버 시간은 %s년 %s월 %s일 오후 %s시 %s분 %s초 입니다!" % (now.year, now.month, now.day, now.hour - 12, now.minute, now.second), description=None, color=Setting.embed_color)
                         embed.set_footer(text = "Seoul. (GMT +09:00) | Ver. %s | %s" % (Setting.version, Copyright))
                         await app.send_message(message.channel, embed=embed)
                         log_actvity("I sent Current time to %s." % (message.author.id))
                     else:
-                        embed = discord.Embed(title="현재 서버 시간은 %s년 %s월 %s일 오전 %s시 %s분 %s초 입니다!" % (now.year, now.month, now.day, now.hour, now.minute, now.second), description=None, color=0xb2ebf4)
+                        embed = discord.Embed(title="현재 서버 시간은 %s년 %s월 %s일 오전 %s시 %s분 %s초 입니다!" % (now.year, now.month, now.day, now.hour, now.minute, now.second), description=None, color=Setting.embed_color)
                         embed.set_footer(text = "Seoul. (GMT +09:00) | Ver. %s | %s" % (Setting.version, Copyright))
                         await app.send_message(message.channel, embed=embed)
                         log_actvity("I sent Current time to %s." % (message.author.id))
 
+                if message.content.startswith(prefix + '문구요청'):
+                    if message.content[6:] == " ":
+                        await app.send_message(message.channel, "<@%s>, 누락된 항목이 존재합니다!" % (message.author.id))
+                    else:
+                        await app.send_message(app.get_channel("533949230444707861"), "```Markdown\n# Req By. %s#%s\n\n- Req : %s```" % (message.author.name, message.author.discriminator, message.content[6:]))
+                        await app.send_message(message.channel, "<@%s>, 성공적으로 문구 추가 요청을 보냈습니다!\n3일 이내에 디스코드 DM으로 알림이 갑니다!" % (message.author.id))
+                        log_actvity("%s has Requested Ment : %s" % (message.author.id, message.content[6:]))
 
                 if message.content.startswith(prefix + '지우기'):
                     if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
                         if int(0) < int(message.content[5:]):
-                            await app.send_message(message.channel, embed=discord.Embed(color=0xb2ebf4, title="모듈 초기화중..."))
+                            await app.send_message(message.channel, embed=discord.Embed(color=Setting.embed_color, title="모듈 초기화중..."))
                             cleared = -2
                             failed = 0
                             await asyncio.sleep(random.choice(range(0,2)))
@@ -780,12 +746,12 @@ async def on_message(message):
                                     pass
 
                             if failed == 0:
-                                returnmsg = await app.send_message(message.channel, embed=discord.Embed(color=0xb2ebf4, title="%s개의 메세지를 삭제하였으며, 0개의 메시지를 삭제하지 못하였습니다." % (cleared), description=""))
+                                returnmsg = await app.send_message(message.channel, embed=discord.Embed(color=Setting.embed_color, title="%s개의 메세지를 삭제하였으며, 0개의 메시지를 삭제하지 못하였습니다." % (cleared), description=""))
                                 await asyncio.sleep(3)
                                 await app.delete_message(returnmsg)
                                 log_actvity("%s messages have been deleted by %s. (failed : 0)" % (cleared, message.author.id))
                             else:
-                                returnmsg = await app.send_message(message.channel, embed=discord.Embed(color=0xb2ebf4, title="%s개의 메세지를 삭제하였으며, %s개의 메시지를 삭제하지 못하였습니다." % (cleared, failed), description="(추정 원인 : 메시지 관리 권한이 없거나, 너무 오래된 메시지 입니다)"))
+                                returnmsg = await app.send_message(message.channel, embed=discord.Embed(color=Setting.embed_color, title="%s개의 메세지를 삭제하였으며, %s개의 메시지를 삭제하지 못하였습니다." % (cleared, failed), description="(추정 원인 : 메시지 관리 권한이 없거나, 너무 오래된 메시지 입니다)"))
                                 await asyncio.sleep(5)
                                 await app.delete_message(returnmsg)
                                 log_actvity("%s messages have been deleted by %s. (failed : %s)" % (cleared, message.author.id, failed))
@@ -800,17 +766,22 @@ async def on_message(message):
                         if message.author.server_permissions.administrator or message.author.id == Setting.owner_id:
                             os.remove("Server_%s/%s_Server_first.rtl" % (message.server.id, message.server.id))
                             open("Server_%s/%s_Server_prefix.rts" % (message.server.id, message.server.id), 'w').write(Setting.prefix)
-                            open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'w').write("3")
-                            embed = discord.Embed(title="루탑봇이 해당 서버에 활성화 되었습니다!", description="기본 접두사는 ``%s`` 이며, ``%s도움말``로 기본 명령어를 확인하세요!" % (Setting.prefix, Setting.prefix), color=0xb2ebf4)
+                            embed = discord.Embed(title="루탑봇이 해당 서버에 활성화 되었습니다!", description="기본 접두사는 ``%s`` 이며, ``%s도움말``로 기본 명령어를 확인하세요!" % (Setting.prefix, Setting.prefix), color=Setting.embed_color)
                             embed.set_footer(text = "Server ID : %s | Ver. %s | %s" % (message.server.id, Setting.version, Copyright))
                             await app.send_message(message.channel, embed=embed)
                             log_actvity("Logging Started In %s (by %s)" % (message.server.id, message.author.id))
+                            if os.path.isfile("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id)):
+                                num = open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'r').read()
+                                await app.send_message(message.channel, "<@%s>, 커스텀 커맨드 이용권을 발견하였습니다! 남은 커스텀커맨드 사용 횟수는 `%s`회 입니다!" % (message.author.id, num))
+                            else:
+                                open("Server_%s/%s_Server_CC_Limit.rtl" % (message.server.id, message.server.id), 'w').write("1")
+                                await app.send_message(message.channel, "<@%s>, 커스텀 커맨드 이용권을 발견하지 못하였습니다! 남은 커스텀커맨드 사용 횟수는 `1`회(기본제공) 입니다!" % (message.author.id))
                         else:
                             await app.send_file(message.channel, "<@%s>, 서버 관리자만이 봇을 활성화 시킬 수 있습니다!")
                     else:
                         return None
                 else:
-                    embed = discord.Embed(title="환영합니다!", description=None, color=0xb2ebf4)
+                    embed = discord.Embed(title="환영합니다!", description=None, color=Setting.embed_color)
                     embed.add_field(name="루탑봇을 초대 해 주셔서 감사합니다!", value="루탑봇을 활성화 하시려면 서버 관리자가 ``루탑봇 활성화``를 입력 해 주세요!", inline=False)
                     embed.add_field(name="주의하세요!", value="**루탑봇 활성화를 하면 서버 관리자가 모든 유저를 대표하여 이용약관과 개인정보 취급방침에 동의하는 것으로 간주됩니다.\n이를 원하지 않으시면 루탑봇을 추방하여 주세요.**", inline=False)
                     embed.add_field(name="링크", value="개인정보 처리방침 : https://rutapofficial.xyz/post/18/\n이용약관 : https://rutapofficial.xyz/post/21/")
@@ -820,20 +791,21 @@ async def on_message(message):
                     try:
                         os.makedirs("Server_%s" %(message.server.id))
                     except:
-                        a = 0
+                        pass
                     open("Server_%s/%s_Server_first.rtl" % (message.server.id, message.server.id), 'w').close()
         except discord.HTTPException as e:
-                embed = discord.Embed(title="죄송합니다. 예기치 못한 애러가 발생했습니다.", description="봇이 메시지 관련한 충분한 권한을 가지고 있는지 다시 한 번 확인 해 주시기 바랍니다.\nOfficial Support Server : https://invite.gg/rutapbot", color=0xff0000)
+                embed = discord.Embed(title="죄송합니다. 예기치 못한 애러가 발생했습니다.", description="봇이 메시지에 관련된 충분한 권한을 가지고 있는지 다시 한 번 확인 해 주시기 바랍니다.\nOfficial Support Server : https://invite.gg/rutapbot", color=0xff0000)
                 embed.set_footer(text = e)
                 await app.send_message(message.author, embed=embed)
                 log_actvity("Discord HTTPException has occured in %s(%s) | %s(%s) : %s" % (message.server.id, message.server.name, message.channel.id, message.channel, e))
-    except Exception as e:
+    except:
         try:
-            embed = discord.Embed(title="죄송합니다. 원인을 알 수 없는 애러가 발생했습니다.", description="애러가 계속 발생 할 경우, 아래에 있는 오류코드를 가지고 문의 해 주시기 바랍니다.\nOfficial Support Server : https://invite.gg/rutapbot", color=0xff0000)
-            embed.set_footer(text = e)
+            await app.send_message(app.get_channel("Setting.err_log_channel"), "```Markdown\n# Error Has Occured!!!\n- User %s#%s\n* Info : %s\n> Check the logs for more information.```" % (message.author.name, message.author.discriminator, Exception))
+            embed = discord.Embed(title="죄송합니다. 원인을 알 수 없는 애러가 발생했습니다.", description="담당자에게 오류 내용이 전송되었으며, 3일 이내에 디스코드 DM으로 알려드리겠습니다.\nOfficial Support Server : https://invite.gg/rutapbot", color=0xff0000)
+            embed.set_footer(text = Exception)
             await app.send_message(message.channel, embed=embed)
-            log_actvity("Err has occured in %s : %s" % (message.content, e))
-        except discord.HTTPException as e:
+            log_actvity("Err has occured in %s : %s" % (message.content, Exception))
+        except discord.HTTPException:
             return None # 위에서 HTTPException 잡아서 출력하니까 여기서 HTTPException 애러나는데 왜나는지 모르겠음
 
 app.run(Setting.token)

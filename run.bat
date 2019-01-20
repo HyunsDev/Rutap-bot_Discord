@@ -1,5 +1,10 @@
 @echo off
+echo.
+echo ==============================
+echo Preparing... Please Wait
+echo ==============================
 title Run Rutap Bot 2019 Main Module
+chcp 65001
 color 0b
 goto main
 
@@ -28,6 +33,8 @@ python -m pip install discord
 python -m pip install requests
 python -m pip install datetime
 python -m pip install BeautifulSoup4
+python -m pip install Pillow
+python -m pip install numpy
 echo.
 echo ==============================
 echo Press Enter to return to Main.

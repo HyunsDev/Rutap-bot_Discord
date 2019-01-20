@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*- 
+# -*- coding:utf-8 -*- 
 
-###################################################################
-#              Rutap Bot 2019 Actvity Logging Module              #
-#     모든 저작권은 팀 화공이 소유합니다. 모든 권리를 보유합니다.      #
-#                  GNU General Public License v3.0                #
-###################################################################
+##########################################################
+#          Rutap Bot 2019 Actvity Logging Module         #
+# 모든 저작권은 팀 화공이 소유합니다. 모든 권리를 보유합니다. #
+#                   BSD 3-Clause License                 #
+##########################################################
 
 import os, datetime, setting
 
@@ -12,6 +12,7 @@ Setting = setting.Settings()
 now = datetime.datetime.now()
 
 def log_actvity(log_text):
+    now = datetime.datetime.now()
     if os.path.isfile("log/%s" % (Setting.actvity_log_file)):
         f = open("log/%s" % (Setting.actvity_log_file), 'r')
         old_log_info = f.read()
@@ -28,6 +29,7 @@ def log_actvity(log_text):
         print("%s 파일을 발견하지 못하여 해당 파일을 생성하였습니다.\n\n==============\n" % ("log/%s" % (Setting.actvity_log_file)))
 
 def log_start_actvity():
+    now = datetime.datetime.now()
     if os.path.isfile("log/%s" % (Setting.actvity_log_file)):
         f = open("log/%s" % (Setting.actvity_log_file), 'r')
         old_log_info = f.read()
