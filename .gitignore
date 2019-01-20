@@ -3,9 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Hangulclock Module
-hangul_clock.py
-hangul_clock_base/
-
-# Hangulclock File Upload
-upload.php
+# Prevention of Mistakes
+hangul_clock_design.aep
+sample_1000_1500.png
+milky_way_1000_1500.png
